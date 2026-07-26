@@ -1,7 +1,7 @@
+require('dotenv').config(); // Must be first — loads env vars before any module reads them
 const app = require('./app');
 const { initializeDatabase, query } = require('./config/db');
 const { startScheduler } = require('./cron/scheduler');
-require('dotenv').config();
 
 const PORT = process.env.PORT || 5000;
 const MOCK_PORT = process.env.MOCK_PORT || 5001;

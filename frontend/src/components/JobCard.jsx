@@ -4,6 +4,7 @@ import { MapPin, Briefcase, ExternalLink, PlusCircle, CheckCircle2, Building, Ch
 
 export const JobCard = ({ job, isTracked, onTrackJob }) => {
   const [showAllSkills, setShowAllSkills] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const skillsString = job.skills || job.job_skills || '';
   const skillsList = typeof skillsString === 'string' ? skillsString.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(skillsString) ? skillsString : []);
@@ -15,9 +16,12 @@ export const JobCard = ({ job, isTracked, onTrackJob }) => {
   const remainingCount = skillsList.length - maxInitialSkills;
 
   return (
-    <div className="bg-white border border-slate-200 hover:border-brand-300 rounded-xl p-5 shadow-sm transition-all duration-200 flex flex-col justify-between space-y-4 group">
+    <div className={`bg-white border hover:border-brand-300 rounded-xl p-5 shadow-sm transition-all duration-200 flex flex-col space-y-4 group ${isExpanded ? 'border-brand-200 ring-2 ring-brand-50' : 'border-slate-200'}`}>
       {/* Top Header: Company, Title, Match Score */}
-      <div>
+      <div 
+        className="cursor-pointer flex flex-col gap-3"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -31,13 +35,21 @@ export const JobCard = ({ job, isTracked, onTrackJob }) => {
             </h3>
           </div>
 
-          <span className="shrink-0 px-2.5 py-1 rounded-md text-xs font-extrabold bg-brand-50 text-brand-700 border border-brand-100 shadow-2xs">
-            {job.match_score || job.matchScore || 85}% Match
-          </span>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <span className="px-2.5 py-1 rounded-md text-xs font-extrabold bg-brand-50 text-brand-700 border border-brand-100 shadow-2xs">
+              {job.match_score || job.matchScore || 85}% Match
+            </span>
+            <button className="text-slate-400 hover:text-brand-700 transition-colors p-1">
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Metadata Details */}
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 pt-3 border-t border-slate-100">
+      {isExpanded && (
+        <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Metadata Details */}
+          <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 pt-3 border-t border-slate-100">
           <div className="flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             <span className="truncate">{job.location}</span>
@@ -61,11 +73,10 @@ export const JobCard = ({ job, isTracked, onTrackJob }) => {
               {job.work_mode || job.workMode || 'Remote'}
             </span>
           </div>
-        </div>
-      </div>
+          </div>
 
-      {/* Skills Tags with Functional Toggle */}
-      <div className="space-y-1.5 pt-2 border-t border-slate-100">
+          {/* Skills Tags with Functional Toggle */}
+          <div className="space-y-1.5 pt-2 border-t border-slate-100">
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
           Required Skills:
         </span>
@@ -92,40 +103,46 @@ export const JobCard = ({ job, isTracked, onTrackJob }) => {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="pt-3 flex items-center gap-2 border-t border-slate-100">
-        <a
-          href={job.apply_url || job.applyUrl || '#'}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-        >
-          <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
-          <span>Apply Link</span>
-        </a>
+          {/* Action Buttons */}
+          <div className="pt-4 flex items-center gap-2 border-t border-slate-100 mt-4">
+            <a
+              href={job.apply_url || job.applyUrl || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+              <span>Apply Link</span>
+            </a>
 
-        <button
-          onClick={() => onTrackJob(job)}
-          disabled={isTracked}
-          className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-            isTracked
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
-              : 'bg-brand-700 hover:bg-brand-900 text-white shadow-md shadow-brand-700/20'
-          }`}
-        >
-          {isTracked ? (
-            <>
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-              <span>Tracked</span>
-            </>
-          ) : (
-            <>
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span>Track Job</span>
-            </>
-          )}
-        </button>
-      </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTrackJob(job);
+              }}
+              disabled={isTracked}
+              className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                isTracked
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+                  : 'bg-brand-700 hover:bg-brand-900 text-white shadow-md shadow-brand-700/20'
+              }`}
+            >
+              {isTracked ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Tracked</span>
+                </>
+              ) : (
+                <>
+                  <PlusCircle className="h-3.5 w-3.5" />
+                  <span>Track Job</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -34,7 +34,7 @@ async function scrapeCompanyJobs(company) {
     
     // Set viewport and default timeouts
     await page.setViewportSize({ width: 1280, height: 800 });
-    page.setDefaultTimeout(30000); // 30s timeout for heavier dynamic pages
+    page.setDefaultTimeout(60000); // 60s timeout for heavier dynamic pages
 
     // 2. Navigate to Career URL (use domcontentloaded to avoid waiting for endless trackers/analytics to finish)
     await page.goto(company.career_url, { waitUntil: 'domcontentloaded' });
@@ -347,9 +347,9 @@ ${pageText}
       generationConfig: { responseMimeType: "application/json" }
     });
   } catch (error) {
-    console.warn('[LLM Scraper] gemini-1.5-flash failed, trying gemini-pro as fallback...', error.message);
-    const fallbackModel = genAI.getGenerativeModel({ model: "gemini-pro" });
-    // gemini-pro might not support responseMimeType: "application/json" in older versions, so we pass it without it
+    console.warn('[LLM Scraper] gemini-1.5-flash failed, trying gemini-1.5-pro as fallback...', error.message);
+    const fallbackModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    // gemini-1.5-pro might not support responseMimeType: "application/json" in older versions, so we pass it without it
     result = await fallbackModel.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt + "\n\nCRITICAL: You MUST return ONLY valid JSON." }] }]
     });

@@ -70,7 +70,7 @@ export const TestingLab = () => {
     const targetCompanyName =
       selectedCompanyId === 'All'
         ? 'All Target Portals'
-        : targetCompanies.find((c) => c._id === selectedCompanyId)?.name || 'Selected Company';
+        : targetCompanies.find((c) => String(c.id) === String(selectedCompanyId))?.company_name || 'Selected Company';
 
     const userSkills = user?.skills_keywords || 'None';
 
@@ -112,20 +112,24 @@ export const TestingLab = () => {
         }
       ]);
 
-      // Attempt to fetch any detailed logs from server if endpoint works
+      // Fetch scan logs from server and display in terminal
+      // DB schema fields: start_time, status, error_message, jobs_found, jobs_added, company_name
       try {
         const serverLogs = await getAutomationLogs();
         if (serverLogs && serverLogs.length > 0) {
-           setLogs(prev => [...prev, ...serverLogs.map(l => ({
-             id: `server-log-${Math.random()}`,
-             timestamp: new Date(l.timestamp || Date.now()).toLocaleTimeString(),
-             level: l.level || 'INFO',
-             message: l.message,
-             details: l.details
-           }))]);
+          const recentLogs = serverLogs.slice(0, 5); // Show last 5 scan log entries
+          setLogs(prev => [...prev, ...recentLogs.map(l => ({
+            id: `server-log-${Math.random()}`,
+            timestamp: l.start_time
+              ? new Date(l.start_time).toLocaleTimeString()
+              : new Date().toLocaleTimeString(),
+            level: l.status === 'SUCCESS' ? 'SUCCESS' : l.status === 'FAILED' ? 'ERROR' : 'INFO',
+            message: `[${l.company_name}] ${l.status} — ${l.jobs_found ?? 0} found, ${l.jobs_added ?? 0} new`,
+            details: l.error_message || undefined,
+          }))]);
         }
       } catch (logErr) {
-         // Ignore log fetch error
+        // Ignore log fetch error silently
       }
     } catch (err) {
       setLogs((prev) => [
@@ -271,8 +275,8 @@ export const TestingLab = () => {
                 >
                   <option value="All">All Companies (Broad Scouting)</option>
                   {targetCompanies.map((tc) => (
-                    <option key={tc._id} value={tc._id}>
-                      {tc.name} ({tc.portal_type || 'Unknown'})
+                    <option key={tc.id} value={tc.id}>
+                      {tc.company_name}
                     </option>
                   ))}
                 </select>

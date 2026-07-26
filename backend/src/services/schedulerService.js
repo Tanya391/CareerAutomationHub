@@ -47,8 +47,11 @@ async function runJobIngestionCycle(targetCompanyId = null) {
       return { success: true, message: 'Scrape finished. No users to match.' };
     }
 
-    // Get all jobs added in the system
-    const allJobs = await query('SELECT * FROM jobs');
+    // Get jobs discovered in the last 24 hours to keep the matching set bounded.
+    // This prevents memory blowout as the jobs table grows over time.
+    const allJobs = await query(
+      "SELECT * FROM jobs WHERE discovered_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+    );
     
     let matchesFound = 0;
     let alertsSent = 0;
@@ -78,15 +81,17 @@ async function runJobIngestionCycle(targetCompanyId = null) {
         // Check if score meets user threshold
         if (score >= user.min_match_score) {
           matchesFound++;
-          
-          // Save match to applications tracker (Status = 'Saved')
+
+          // Insert the application record FIRST so the job is always tracked,
+          // even if the subsequent email send fails.
           const insertAppSql = `
             INSERT INTO applications (user_id, job_id, match_score, is_notified, notified_at, status)
             VALUES (?, ?, ?, ?, ?, 'Saved')
             ON DUPLICATE KEY UPDATE match_score = VALUES(match_score)
           `;
+          await query(insertAppSql, [user.id, job.id, score, 0, null]);
 
-          // Dispatch email notification
+          // Now attempt to dispatch email notification
           let isNotified = false;
           let notifiedAt = null;
           let emailPreviewUrl = null;
@@ -106,21 +111,16 @@ async function runJobIngestionCycle(targetCompanyId = null) {
             if (emailResult && emailResult.previewUrl) {
               emailPreviewUrl = emailResult.previewUrl;
             }
+
+            // Update the row to mark it as notified
+            await query(
+              'UPDATE applications SET is_notified = 1, notified_at = ? WHERE user_id = ? AND job_id = ?',
+              [notifiedAt, user.id, job.id]
+            );
+
+            console.log(`[Scheduler] Match Found! ${user.name} matched ${job.title} (${score}%). Email Alert sent.${emailPreviewUrl ? ` Preview URL: ${emailPreviewUrl}` : ''}`);
           } catch (mailError) {
             console.error(`[Scheduler] Failed to send email alert to ${user.email}:`, mailError.message);
-          }
-
-          // Insert into application tracker
-          await query(insertAppSql, [
-            user.id,
-            job.id,
-            score,
-            isNotified ? 1 : 0,
-            notifiedAt
-          ]);
-
-          if (isNotified) {
-            console.log(`[Scheduler] Match Found! ${user.name} matched ${job.title} (${score}%). Email Alert sent.${emailPreviewUrl ? ` Preview URL: ${emailPreviewUrl}` : ''}`);
           }
         }
       }

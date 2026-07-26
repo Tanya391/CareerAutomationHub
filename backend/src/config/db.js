@@ -66,6 +66,7 @@ async function initializeDatabase() {
         await connection.end();
       } catch (e) {}
     }
+    throw error; // Rethrow so bootstrap() can fail fast instead of silently continuing
   }
 }
 
