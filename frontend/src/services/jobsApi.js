@@ -10,8 +10,9 @@ export const getJobById = async (id) => {
   return response.data;
 };
 
-export const triggerAutomationRun = async () => {
-  const response = await api.post('/automation/run');
+export const triggerAutomationRun = async (companyId = null) => {
+  const payload = companyId ? { companyId } : {};
+  const response = await api.post('/automation/run', payload);
   return response.data;
 };
 

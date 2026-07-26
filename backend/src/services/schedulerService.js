@@ -11,14 +11,22 @@ const { sendJobMatchAlert } = require('./emailService');
  * 4. Record matches in applications table
  * 5. Send Nodemailer notifications
  */
-async function runJobIngestionCycle() {
+async function runJobIngestionCycle(targetCompanyId = null) {
   console.log('=== [Scheduler] Starting Automation Cycle ===');
   
   try {
     // 1. Fetch active companies
-    const activeCompanies = await query('SELECT * FROM companies WHERE is_active = TRUE');
+    let sql = 'SELECT * FROM companies WHERE is_active = TRUE';
+    let params = [];
+    if (targetCompanyId) {
+      sql += ' AND id = ?';
+      params.push(targetCompanyId);
+      console.log(`[Scheduler] Targeted scrape for company ID: ${targetCompanyId}`);
+    }
+
+    const activeCompanies = await query(sql, params);
     if (activeCompanies.length === 0) {
-      console.log('[Scheduler] No active companies configured for scraping. Skipping crawl.');
+      console.log('[Scheduler] No active companies configured/found for scraping. Skipping crawl.');
     }
 
     // 2. Scrape each company sequentially

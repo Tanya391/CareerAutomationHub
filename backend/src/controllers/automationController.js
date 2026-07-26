@@ -9,8 +9,8 @@ async function triggerScraperRun(req, res) {
     // Run cycle asynchronously so user doesn't wait for 30 seconds for HTTP response
     // But we return a message indicating it has started.
     // Or we can await it if we want to show instant results!
-    // Since it scrapes mock local files, it takes only 3-5 seconds. Let's await it so the UI gets instant confirmation!
-    const results = await runJobIngestionCycle();
+    const { companyId } = req.body || {};
+    const results = await runJobIngestionCycle(companyId);
 
     res.json({
       message: 'Automation cycle completed successfully.',

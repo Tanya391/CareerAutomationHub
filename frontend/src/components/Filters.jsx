@@ -13,14 +13,14 @@ const Filters = ({ filters, onFilterChange, companies = [] }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-slate-900/40 p-4 border border-slate-800 rounded-xl">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-white p-4 border border-slate-200 rounded-xl shadow-sm">
       {/* Company filter */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Company</label>
+        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Company</label>
         <select
           value={filters.company_id || 'All'}
           onChange={(e) => handleChange('company_id', e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-300 focus:outline-none focus:border-brand-500"
+          className="bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
         >
           <option value="All">All Companies</option>
           {companies.map(c => (
@@ -31,11 +31,11 @@ const Filters = ({ filters, onFilterChange, companies = [] }) => {
 
       {/* Work Mode */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Work Mode</label>
+        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Work Mode</label>
         <select
           value={filters.work_mode || 'All'}
           onChange={(e) => handleChange('work_mode', e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-300 focus:outline-none focus:border-brand-500"
+          className="bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
         >
           <option value="All">All Modes</option>
           {workModes.map(m => (
@@ -46,11 +46,11 @@ const Filters = ({ filters, onFilterChange, companies = [] }) => {
 
       {/* Employment Type */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Job Type</label>
+        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Job Type</label>
         <select
           value={filters.employment_type || 'All'}
           onChange={(e) => handleChange('employment_type', e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-300 focus:outline-none focus:border-brand-500"
+          className="bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
         >
           <option value="All">All Types</option>
           {jobTypes.map(t => (
@@ -61,11 +61,11 @@ const Filters = ({ filters, onFilterChange, companies = [] }) => {
 
       {/* Experience Level */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Experience</label>
+        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Experience</label>
         <select
           value={filters.experience || 'All'}
           onChange={(e) => handleChange('experience', e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-300 focus:outline-none focus:border-brand-500"
+          className="bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
         >
           <option value="All">All Levels</option>
           {expLevels.map(l => (
@@ -76,11 +76,11 @@ const Filters = ({ filters, onFilterChange, companies = [] }) => {
 
       {/* Sort options */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Sort By</label>
+        <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Sort By</label>
         <select
           value={filters.sort || 'newest'}
           onChange={(e) => handleChange('sort', e.target.value)}
-          className="bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-300 focus:outline-none focus:border-brand-500"
+          className="bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-3 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
         >
           <option value="newest">Newest Discovered</option>
           <option value="oldest">Oldest Discovered</option>

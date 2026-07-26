@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getProfile, loginUser, registerUser, updateProfile } from '../services/authApi';
+import { getProfile, loginUser, registerUser, updateProfile, uploadResume } from '../services/authApi';
 
 const AuthContext = createContext(null);
 
@@ -44,10 +44,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Handle Register
-  const register = async (name, email, password, skills_keywords, min_match_score) => {
+  const register = async (name, email, password, skills_keywords, min_match_score, experience_type, age, previous_company, college, cgpa) => {
     setLoading(true);
     try {
-      const data = await registerUser({ name, email, password, skills_keywords, min_match_score });
+      const data = await registerUser({ name, email, password, skills_keywords, min_match_score, experience_type, age, previous_company, college, cgpa });
       localStorage.setItem('token', data.token);
       setUser(data.user);
       return data.user;
@@ -80,6 +80,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Handle Resume Upload
+  const uploadPdf = async (formData) => {
+    try {
+      const data = await uploadResume(formData);
+      if (data.skills_keywords) {
+        setUser(prev => ({
+          ...prev,
+          skills_keywords: data.skills_keywords
+        }));
+      }
+      return data;
+    } catch (error) {
+      throw error.response?.data?.error || 'Failed to upload resume';
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -87,6 +103,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUserData,
+    uploadPdf,
     isAuthenticated: !!user
   };
 

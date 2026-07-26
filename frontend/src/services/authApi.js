@@ -19,3 +19,12 @@ export const updateProfile = async (profileData) => {
   const response = await api.put('/auth/profile', profileData);
   return response.data;
 };
+
+export const uploadResume = async (formData) => {
+  const response = await api.post('/auth/upload-resume', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};

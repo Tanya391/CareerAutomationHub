@@ -1,191 +1,131 @@
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  MapPin, 
-  Briefcase, 
-  DollarSign, 
-  ExternalLink, 
-  Bookmark, 
-  CheckCircle,
-  HelpCircle
-} from 'lucide-react';
+import { formatSalaryToLPA } from '../utils/formatters';
+import { MapPin, Briefcase, ExternalLink, PlusCircle, CheckCircle2, Building, ChevronDown, ChevronUp } from 'lucide-react';
 
-const JobCard = ({ job, userSkillsString, trackedStatus, onTrackJob }) => {
-  const [showAssessment, setShowAssessment] = useState(false);
+export const JobCard = ({ job, isTracked, onTrackJob }) => {
+  const [showAllSkills, setShowAllSkills] = useState(false);
 
-  // Compute Client-side Match Score for visual wow-factor
-  const getMatchData = () => {
-    if (!userSkillsString) return { score: 0, matched: [], missing: [] };
-    
-    const userSkills = userSkillsString
-      .split(',')
-      .map(s => s.trim().toLowerCase())
-      .filter(s => s.length > 0);
-
-    if (userSkills.length === 0) return { score: 0, matched: [], missing: [] };
-
-    const searchText = `${job.title || ''} ${job.skills || ''} ${job.description || ''}`.toLowerCase();
-    
-    const matched = [];
-    const missing = [];
-
-    userSkills.forEach(skill => {
-      const escaped = skill.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-      const regex = new RegExp(`\\b${escaped}\\b|${escaped}`, 'i');
-      if (regex.test(searchText)) {
-        matched.push(skill);
-      } else {
-        missing.push(skill);
-      }
-    });
-
-    const score = Math.round((matched.length / userSkills.length) * 100);
-    return { score, matched, missing };
-  };
-
-  const { score, matched, missing } = getMatchData();
-
-  // Helper for match score color badge
-  const getScoreColor = (val) => {
-    if (val >= 85) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-    if (val >= 70) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-    return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
-  };
-
-  const getWorkModeColor = (mode) => {
-    if (mode === 'Remote') return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
-    if (mode === 'Hybrid') return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
-    return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-  };
-
-  // Convert comma-separated skills to array tags
-  const skillsArray = job.skills
-    ? job.skills.split(',').map(s => s.trim()).filter(s => s.length > 0)
-    : [];
+  const skillsString = job.skills || job.job_skills || '';
+  const skillsList = typeof skillsString === 'string' ? skillsString.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(skillsString) ? skillsString : []);
+  
+  // Maximum skills to display by default: 4
+  const maxInitialSkills = 4;
+  const hasMoreSkills = skillsList.length > maxInitialSkills;
+  const visibleSkills = showAllSkills ? skillsList : skillsList.slice(0, maxInitialSkills);
+  const remainingCount = skillsList.length - maxInitialSkills;
 
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-5 hover:border-slate-700/60 transition-all duration-300 relative flex flex-col justify-between group">
-      
-      {/* Header */}
+    <div className="bg-white border border-slate-200 hover:border-brand-300 rounded-xl p-5 shadow-sm transition-all duration-200 flex flex-col justify-between space-y-4 group">
+      {/* Top Header: Company, Title, Match Score */}
       <div>
-        <div className="flex justify-between items-start gap-4">
-          <div>
-            <h4 className="text-base font-bold text-slate-100 group-hover:text-brand-400 transition-colors line-clamp-1">{job.title}</h4>
-            <div className="flex items-center gap-1.5 mt-1 text-slate-400 text-sm font-semibold">
-              <Building2 className="w-3.5 h-3.5" />
-              <span>{job.company_name || job.source}</span>
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 bg-brand-50 text-brand-700 rounded-lg border border-brand-100">
+                <Building className="h-4 w-4" />
+              </span>
+              <span className="text-xs font-bold text-slate-700">{job.company_name || job.company}</span>
             </div>
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-brand-700 transition-colors leading-snug">
+              {job.title}
+            </h3>
           </div>
-          
-          {/* Match Score Indicator */}
-          {userSkillsString && (
-            <div className="relative">
-              <button
-                onMouseEnter={() => setShowAssessment(true)}
-                onMouseLeave={() => setShowAssessment(false)}
-                onClick={() => setShowAssessment(!showAssessment)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${getScoreColor(score)} cursor-help`}
-              >
-                <span>{score}% Match</span>
-                <HelpCircle className="w-3 h-3" />
-              </button>
-              
-              {/* Tooltip detail panel */}
-              {showAssessment && (
-                <div className="absolute right-0 top-7 w-60 bg-slate-900 border border-slate-800 rounded-lg p-3 shadow-xl z-20 text-xs text-slate-300">
-                  <h5 className="font-bold text-slate-200 border-b border-slate-800 pb-1.5 mb-2">Resume Matching Summary</h5>
-                  <p className="mb-2 text-[10px] text-slate-400">Comparing requirements to your profile skill keywords.</p>
-                  
-                  <div className="space-y-1 max-h-36 overflow-y-auto">
-                    {matched.length > 0 && (
-                      <div>
-                        <span className="font-semibold text-emerald-400 block">Matched Skills:</span>
-                        <p className="text-[10px] truncate capitalize">{matched.join(', ')}</p>
-                      </div>
-                    )}
-                    {missing.length > 0 && (
-                      <div className="mt-1.5">
-                        <span className="font-semibold text-rose-400 block">Missing Skills:</span>
-                        <p className="text-[10px] truncate capitalize">{missing.join(', ')}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+
+          <span className="shrink-0 px-2.5 py-1 rounded-md text-xs font-extrabold bg-brand-50 text-brand-700 border border-brand-100 shadow-2xs">
+            {job.match_score || job.matchScore || 85}% Match
+          </span>
         </div>
 
         {/* Metadata Details */}
-        <div className="grid grid-cols-2 gap-y-2 mt-4 text-xs font-medium text-slate-400">
+        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 pt-3 border-t border-slate-100">
           <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-slate-500" />
+            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             <span className="truncate">{job.location}</span>
           </div>
+
           <div className="flex items-center gap-1.5">
-            <Briefcase className="w-3.5 h-3.5 text-slate-500" />
-            <span>{job.experience || 'Fresher'}</span>
+            <Briefcase className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <span>{job.experience_required || job.experience || 'Entry'}</span>
           </div>
+
           <div className="flex items-center gap-1.5">
-            <DollarSign className="w-3.5 h-3.5 text-slate-500" />
-            <span>{job.salary || 'Not disclosed'}</span>
+            <span className="text-slate-400 font-medium">Salary:</span>
+            <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+              {formatSalaryToLPA(job.salary_max || job.salaryRaw)}
+            </span>
           </div>
-          <div>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${getWorkModeColor(job.work_mode)}`}>
-              {job.work_mode}
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400 font-medium">Mode:</span>
+            <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">
+              {job.work_mode || job.workMode || 'Remote'}
             </span>
           </div>
         </div>
-
-        {/* Skills Tag Section */}
-        {skillsArray.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-4">
-            {skillsArray.slice(0, 4).map(skill => (
-              <span key={skill} className="bg-slate-900 border border-slate-800 text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded">
-                {skill}
-              </span>
-            ))}
-            {skillsArray.length > 4 && (
-              <span className="text-[10px] text-slate-500 font-bold self-center">
-                +{skillsArray.length - 4} more
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Action Footer */}
-      <div className="flex gap-2.5 mt-6 border-t border-slate-800/60 pt-4">
-        {/* External Apply Link */}
+      {/* Skills Tags with Functional Toggle */}
+      <div className="space-y-1.5 pt-2 border-t border-slate-100">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Required Skills:
+        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {visibleSkills.map((skill, idx) => (
+            <span
+              key={idx}
+              className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-slate-100 text-slate-700 border border-slate-200/60"
+            >
+              {skill}
+            </span>
+          ))}
+
+          {/* Functional +X More Button Toggle */}
+          {hasMoreSkills && (
+            <button
+              onClick={() => setShowAllSkills(!showAllSkills)}
+              className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span>{showAllSkills ? 'Show less' : `+${remainingCount} more`}</span>
+              {showAllSkills ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="pt-3 flex items-center gap-2 border-t border-slate-100">
         <a
-          href={job.apply_url}
+          href={job.apply_url || job.applyUrl || '#'}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-900 border border-slate-800 hover:border-slate-700/60 hover:bg-slate-800/50 text-slate-200 text-xs font-bold py-2 rounded-lg transition-all"
+          className="flex-1 py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
         >
-          Apply Portal
-          <ExternalLink className="w-3.5 h-3.5" />
+          <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+          <span>Apply Link</span>
         </a>
 
-        {/* Tracker Action Button */}
-        {trackedStatus ? (
-          <div className="flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-bold rounded-lg select-none">
-            <CheckCircle className="w-3.5 h-3.5" />
-            <span>{trackedStatus}</span>
-          </div>
-        ) : (
-          <button
-            onClick={() => onTrackJob(job.id)}
-            className="flex items-center justify-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow-md shadow-brand-600/10"
-          >
-            <Bookmark className="w-3.5 h-3.5 fill-current" />
-            Track
-          </button>
-        )}
+        <button
+          onClick={() => onTrackJob(job)}
+          disabled={isTracked}
+          className={`flex-1 py-2 px-3 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            isTracked
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+              : 'bg-brand-700 hover:bg-brand-900 text-white shadow-md shadow-brand-700/20'
+          }`}
+        >
+          {isTracked ? (
+            <>
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Tracked</span>
+            </>
+          ) : (
+            <>
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span>Track Job</span>
+            </>
+          )}
+        </button>
       </div>
-
     </div>
   );
 };
-
-export default JobCard;

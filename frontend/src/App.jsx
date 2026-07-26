@@ -8,6 +8,7 @@ import Applications from './pages/Applications';
 import Companies from './pages/Companies';
 import Profile from './pages/Profile';
 import ScanLogs from './pages/ScanLogs';
+import TestingLab from './pages/TestingLab';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -17,7 +18,7 @@ const PrivateLayout = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-500 font-semibold text-sm">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-semibold text-sm">
         Authenticating session...
       </div>
     );
@@ -28,10 +29,22 @@ const PrivateLayout = ({ children }) => {
   }
 
   return (
-    <div className="flex bg-slate-950 min-h-screen text-slate-100">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
       <Sidebar />
-      <div className="flex-1 pl-64 flex flex-col min-h-screen">
-        {children}
+      <div className="flex-1 flex flex-col w-full h-screen overflow-y-auto">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
+        <footer className="py-6 border-t border-slate-200 bg-white text-slate-500 text-xs text-center mt-auto shrink-0">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>Ac 2026 Career Automation Hub & Job Scouting System.</span>
+            <div className="flex items-center gap-4">
+              <span className="text-emerald-600 font-semibold flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block"></span> Engine Status: 100% Operational
+              </span>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );
@@ -43,7 +56,7 @@ const PublicRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-500 font-semibold text-sm">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-semibold text-sm">
         Loading...
       </div>
     );
@@ -117,6 +130,14 @@ function App() {
             element={
               <PrivateLayout>
                 <ScanLogs />
+              </PrivateLayout>
+            }
+          />
+          <Route
+            path="/testing-lab"
+            element={
+              <PrivateLayout>
+                <TestingLab />
               </PrivateLayout>
             }
           />

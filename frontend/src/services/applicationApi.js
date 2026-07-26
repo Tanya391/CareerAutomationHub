@@ -10,7 +10,12 @@ export const createApplication = async (appData) => {
   return response.data;
 };
 
-export const updateApplication = async (id, appData) => {
-  const response = await api.put(`/applications/${id}`, appData);
+export const updateApplicationStatus = async (id, status) => {
+  const response = await api.put(`/applications/${id}`, { status });
+  return response.data;
+};
+
+export const deleteApplication = async (id) => {
+  const response = await api.delete(`/applications/${id}`);
   return response.data;
 };

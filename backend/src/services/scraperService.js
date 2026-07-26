@@ -1,6 +1,9 @@
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-extra');
+const stealth = require('puppeteer-extra-plugin-stealth')();
+chromium.use(stealth);
 const { query } = require('../config/db');
 const { generateJobHash } = require('../utils/hash');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 /**
  * Scrapes a single company's career page based on its layout pattern.
@@ -31,10 +34,10 @@ async function scrapeCompanyJobs(company) {
     
     // Set viewport and default timeouts
     await page.setViewportSize({ width: 1280, height: 800 });
-    page.setDefaultTimeout(15000); // 15s timeout for stability
+    page.setDefaultTimeout(30000); // 30s timeout for heavier dynamic pages
 
-    // 2. Navigate to Career URL
-    await page.goto(company.career_url, { waitUntil: 'networkidle' });
+    // 2. Navigate to Career URL (use domcontentloaded to avoid waiting for endless trackers/analytics to finish)
+    await page.goto(company.career_url, { waitUntil: 'domcontentloaded' });
 
     let rawJobs = [];
 
@@ -46,9 +49,13 @@ async function scrapeCompanyJobs(company) {
       rawJobs = await parseJsonLdLayout(page);
     } else if (url.includes('infinite-scroll')) {
       rawJobs = await parseInfiniteScrollLayout(page);
-    } else {
+    } else if (url.includes('template/table')) {
       // Default to HTML Table structure
       rawJobs = await parseTableLayout(page);
+    } else {
+      // LLM Parser for custom dynamic real-world sites
+      console.log(`[LLM Scraper] Using LLM Parser for ${company.company_name}...`);
+      rawJobs = await parseWithLLM(page, company.career_url);
     }
 
     jobsFound = rawJobs.length;
@@ -162,7 +169,7 @@ async function parseTableLayout(page) {
 // ==========================================
 async function parseJsonLdLayout(page) {
   // Wait for the JSON-LD script tag or cards to appear
-  await page.waitForSelector('script[type="application/ld+json"]', { timeout: 5000 });
+  await page.waitForSelector('script[type="application/ld+json"]', { state: 'attached', timeout: 5000 });
 
   const ldDataStrings = await page.evaluate(() => {
     const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
@@ -288,6 +295,82 @@ async function parseInfiniteScrollLayout(page) {
       };
     });
   });
+}
+
+// ==========================================
+// Parsing Helper: Gemini AI LLM Parser
+// ==========================================
+async function parseWithLLM(page, sourceUrl) {
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('[LLM Scraper] GEMINI_API_KEY is missing. Skipping LLM parsing.');
+    return [];
+  }
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  
+  // 1. Extract raw visible text from the page
+  const pageText = await page.evaluate(() => {
+    // Basic cleanup: remove script and style tags to minimize token usage
+    const scripts = document.querySelectorAll('script, style');
+    scripts.forEach(s => s.remove());
+    return document.body.innerText.replace(/\n\s*\n/g, '\n').substring(0, 100000); // truncate if too large
+  });
+
+  const prompt = `
+You are a career page data extractor.
+I will provide you with the raw visible text from a company's career webpage.
+Your task is to extract all the available job listings and return them as a strict JSON array.
+If there are no jobs found, return an empty array [].
+
+The JSON array must contain objects with the following schema:
+- title (string): Job title.
+- location (string): The location of the job. Defaults to 'Onsite' if unknown.
+- work_mode (string): 'Remote', 'Hybrid', or 'Onsite'.
+- employment_type (string): 'Full-Time', 'Part-Time', 'Contract', or 'Internship'.
+- experience (string): Extracted experience required, or 'Not specified'.
+- salary (string): Salary range if present, or 'Not disclosed'.
+- skills (string): Extract up to 5 key technical skills mentioned, comma separated.
+- description (string): A short 1-3 sentence summary of the job.
+- apply_url (string): Set this exactly to: "${sourceUrl}"
+
+Here is the raw text from the webpage:
+"""
+${pageText}
+"""
+`;
+
+  let result;
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+  } catch (error) {
+    console.warn('[LLM Scraper] gemini-1.5-flash failed, trying gemini-pro as fallback...', error.message);
+    const fallbackModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // gemini-pro might not support responseMimeType: "application/json" in older versions, so we pass it without it
+    result = await fallbackModel.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt + "\n\nCRITICAL: You MUST return ONLY valid JSON." }] }]
+    });
+  }
+
+  try {
+    let responseText = result.response.text();
+    // Clean up potential markdown formatting from gemini-pro
+    responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsedJobs = JSON.parse(responseText);
+    
+    if (Array.isArray(parsedJobs)) {
+      return parsedJobs;
+    } else {
+      console.warn('[LLM Scraper] LLM did not return an array. Falling back to empty array.');
+      return [];
+    }
+  } catch (error) {
+    console.error('[LLM Scraper] Failed to parse with Gemini API:', error.message);
+    throw new Error('LLM_PARSE_FAILED');
+  }
 }
 
 module.exports = {

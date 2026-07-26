@@ -10,6 +10,11 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     skills_keywords TEXT NOT NULL, -- Comma-separated target skills (e.g., 'React,Node.js,MySQL')
     min_match_score INT DEFAULT 70,
+    experience_type VARCHAR(50) NULL, -- 'corporate' or 'student' or 'NA'
+    age VARCHAR(10) NULL,
+    previous_company VARCHAR(255) NULL,
+    college VARCHAR(255) NULL,
+    cgpa VARCHAR(50) NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -19,7 +24,8 @@ CREATE TABLE IF NOT EXISTS companies (
     company_name VARCHAR(255) NOT NULL UNIQUE,
     career_url TEXT NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_scan DATETIME NULL
 );
 
 -- 3. JOBS: The Master Aggregated Job Repository
@@ -36,6 +42,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     work_mode VARCHAR(50) DEFAULT 'Onsite', -- 'Remote', 'Hybrid', 'Onsite'
     apply_url TEXT NOT NULL,
     posted_date DATE NULL,
+    source VARCHAR(255) NULL,
     unique_hash VARCHAR(64) NOT NULL UNIQUE, -- SHA-256 fingerprint for database deduplication
     discovered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE

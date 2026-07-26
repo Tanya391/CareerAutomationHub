@@ -1,81 +1,136 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  Briefcase, 
+  Search, 
   Kanban, 
-  Building2, 
-  FileTerminal, 
+  Terminal, 
   User, 
-  LogOut 
+  LogOut, 
+  Cpu, 
+  Building2,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getApplications } from '../services/applicationApi';
 
-const Sidebar = () => {
+export const Sidebar = () => {
+  const { user, logout } = useAuth();
   const location = useLocation();
-  const { logout, user } = useAuth();
+  const navigate = useNavigate();
+  const [trackedCount, setTrackedCount] = useState(0);
 
-  const links = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Jobs Explorer', path: '/jobs', icon: Briefcase },
-    { name: 'Kanban Tracker', path: '/tracker', icon: Kanban },
-    { name: 'Companies', path: '/companies', icon: Building2 },
-    { name: 'Scan History', path: '/logs', icon: FileTerminal },
-    { name: 'My Profile', path: '/profile', icon: User }
+  useEffect(() => {
+    const fetchApps = async () => {
+      try {
+        const apps = await getApplications();
+        setTrackedCount(apps.length);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    if (user) fetchApps();
+  }, [user]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const navItems = [
+    { id: '/', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { id: '/jobs', label: 'All Jobs Explorer', icon: <Search className="h-4 w-4" /> },
+    { id: '/tracker', label: 'Applications', icon: <Kanban className="h-4 w-4" />, badge: trackedCount },
+    { id: '/companies', label: 'Target Portals', icon: <Building2 className="h-4 w-4" /> },
+    { id: '/testing-lab', label: 'Testing Lab', icon: <Terminal className="h-4 w-4" /> },
+    { id: '/logs', label: 'Scan Logs', icon: <FileText className="h-4 w-4" /> },
+    { id: '/profile', label: 'Profile', icon: <User className="h-4 w-4" /> },
   ];
 
+  if (!user) return null;
+
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 text-slate-300">
-      {/* Brand Logo */}
-      <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20">
-          CH
-        </div>
-        <div>
-          <h1 className="font-bold text-slate-100 text-lg leading-none">Career Hub</h1>
-          <span className="text-[10px] text-brand-400 font-semibold tracking-wider uppercase">Automation</span>
+    <div className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 shrink-0 shadow-sm z-40">
+      {/* Brand & System Status */}
+      <div className="p-5 border-b border-slate-200 flex flex-col gap-3">
+        <div className="flex items-center space-x-3">
+          <div className="h-9 w-9 rounded-xl bg-brand-700 flex items-center justify-center text-white shadow-sm shadow-brand-700/20 shrink-0">
+            <Cpu className="h-5 w-5" />
+          </div>
+          <div className="overflow-hidden">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-900 text-sm tracking-tight truncate">Career Hub</span>
+              <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-full shrink-0">
+                v2.4
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5 truncate">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="truncate">Heartbeat 120ms</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Nav Links */}
-      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-        {links.map((link) => {
-          const Icon = link.icon;
-          const isActive = location.pathname === link.path;
+      {/* Nav Items */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-hide">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.id;
           return (
             <Link
-              key={link.name}
-              to={link.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+              key={item.id}
+              to={item.id}
+              className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-brand-600/90 text-white shadow-lg shadow-brand-500/10'
-                  : 'hover:bg-slate-800 hover:text-slate-100'
+                  ? 'bg-brand-50 text-brand-900 border border-brand-100/80 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              {link.name}
+              <div className="flex items-center gap-2.5">
+                {item.icon}
+                <span>{item.label}</span>
+              </div>
+              {item.badge !== undefined && item.badge > 0 && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    isActive ? 'bg-brand-700 text-white' : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {item.badge}
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      {/* User Info & Logout */}
-      {user && (
-        <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-          <div className="mb-3 px-2">
-            <p className="text-xs font-semibold text-slate-200 truncate">{user.name}</p>
-            <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
+      {/* User Profile & Actions */}
+      <div className="p-4 border-t border-slate-200 space-y-3">
+        <Link
+          to="/profile"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all"
+        >
+          <div className="h-8 w-8 rounded-lg bg-brand-100 text-brand-900 font-bold flex items-center justify-center uppercase shrink-0">
+            {user.name ? user.name.charAt(0) : 'U'}
           </div>
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            Logout Account
-          </button>
-        </div>
-      )}
-    </aside>
+          <div className="overflow-hidden text-left">
+            <p className="text-slate-900 text-xs font-bold leading-none truncate">{user.name}</p>
+            <p className="text-[10px] text-slate-500 mt-1 truncate">Score ≥ {user.min_match_score || 70}%</p>
+          </div>
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
   );
 };
 
